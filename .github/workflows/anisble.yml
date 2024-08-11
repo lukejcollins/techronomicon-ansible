@@ -41,7 +41,7 @@ jobs:
             --instance-ids "${{ env.INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --comment "Run Ansible Playbook" \
-            --parameters '{"commands":["echo "Hello World""]}' \
+            --parameters '{"commands":["echo \"Hello World\""]}' \
             --output text
 
       - name: Check SSM command status
