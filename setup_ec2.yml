@@ -75,29 +75,23 @@
       when: not cert_exists.stat.exists
       become: yes
 
-    - name: Setup CloudWatch Agent
-      hosts: all
-      become: yes
-      tasks:
+    - name: Copy CloudWatch Agent configuration
+      copy:
+        src: ./files/common/cloudwatch-agent-config.json
+        dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+        owner: root
+        group: root
+        mode: '0644'
+      register: cloudwatch_agent_config_changed
 
-        - name: Copy CloudWatch Agent configuration
-          copy:
-            src: ./files/common/cloudwatch-agent-config.json
-            dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-            owner: root
-            group: root
-            mode: '0644'
-          register: cloudwatch_agent_config_changed
+    - name: Enable amazon-cloudwatch-agent service
+      systemd:
+        name: amazon-cloudwatch-agent
+        enabled: yes
+      when: cloudwatch_agent_config_changed.changed
 
-        - name: Enable amazon-cloudwatch-agent service
-          systemd:
-            name: amazon-cloudwatch-agent
-            enabled: yes
-          when: cloudwatch_agent_config_changed.changed
-
-        - name: Start amazon-cloudwatch-agent service
-          systemd:
-            name: amazon-cloudwatch-agent
-            state: started
-          when: cloudwatch_agent_config_changed.changed
-
+    - name: Start amazon-cloudwatch-agent service
+      systemd:
+        name: amazon-cloudwatch-agent
+        state: started
+      when: cloudwatch_agent_config_changed.changed
