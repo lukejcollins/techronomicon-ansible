@@ -71,7 +71,6 @@
         --agree-tos
         --email admin@lukecollins.dev
         -d preprod.lukecollins.dev
-        -d www.preprod.lukecollins.dev
       when: not cert_exists.stat.exists
       become: yes
 
