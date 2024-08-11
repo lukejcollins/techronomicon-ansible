@@ -41,7 +41,7 @@ jobs:
             --instance-ids "${{ env.INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --comment "Run Ansible Playbook" \
-            --parameters '{"commands":["sudo rm -rf /tmp/techronomicon-ansible", "sudo git clone https://github.com/lukejcollins/techronomicon-ansible.git /tmp/techronomicon-ansible", "cd /tmp/techronomicon-ansible", "sudo ansible-playbook -i localhost, -c local setup_ec2.yml"]}' \
+            --parameters '{"commands":["sudo rm -rf /tmp/techronomicon-ansible", "sudo git clone https://github.com/lukejcollins/techronomicon-ansible.git --branch ${{ github.head_ref }} /tmp/techronomicon-ansible", "cd /tmp/techronomicon-ansible", "sudo ansible-playbook -i localhost, -c local setup_ec2.yml"]}' \
             --output text
 
       - name: Check SSM command status
