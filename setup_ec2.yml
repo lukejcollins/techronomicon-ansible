@@ -1,0 +1,42 @@
+---
+- name: Setup EC2
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Create the /etc/ecs directory
+      file:
+        path: /etc/ecs
+        state: directory
+        mode: '0755'
+
+    - name: Configure ECS Cluster
+      copy:
+        content: "ECS_CLUSTER=techronomicon-cluster"
+        dest: /etc/ecs/ecs.config
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install ecs-init, nginx, and python3-pip
+      yum:
+        name:
+          - ecs-init
+          - nginx
+        state: present
+        update_cache: yes
+
+    - name: Enable and start ecs.service
+      systemd:
+        name: ecs.service
+        enabled: yes
+        state: started
+        daemon_reload: yes
+        no_block: yes
+
+    - name: Install certbot and certbot-nginx via pip
+      pip:
+        name:
+          - certbot
+          - certbot-nginx
+        state: present
