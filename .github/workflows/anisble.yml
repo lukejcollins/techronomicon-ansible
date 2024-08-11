@@ -33,4 +33,18 @@ jobs:
       - name: Retrieve instance id from SSM
         run: |
           INSTANCE_ID=$(aws ssm get-parameter --name "INSTANCE_ID" --with-decryption --query "Parameter.Value" --output text)
-          echo "$INSTANCE_ID"
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+      - name: Send SSM command to run Ansible
+        run: |
+           aws ssm send-command \
+            --instance-ids "${{ env.INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Run Ansible Playbook" \
+            --parameters '{"commands":["echo "Hello World""]}' \
+            --output text
+
+      - name: Check SSM command status
+        run: |
+          command_id=$(aws ssm list-commands --instance-id "${{ env.INSTANCE_ID }}" --query 'Commands[0].CommandId' --output text)
+          aws ssm list-command-invocations --command-id $command_id --details
