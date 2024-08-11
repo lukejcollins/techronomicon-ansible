@@ -1,0 +1,96 @@
+---
+- name: Setup EC2
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Create the /etc/ecs directory
+      file:
+        path: /etc/ecs
+        state: directory
+        mode: '0755'
+
+    - name: Configure ECS Cluster
+      copy:
+        content: "ECS_CLUSTER=techronomicon-cluster"
+        dest: /etc/ecs/ecs.config
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install ecs-init, nginx, and python3-pip
+      dnf:
+        name:
+          - ecs-init
+          - nginx
+          - amazon-cloudwatch-agent
+          - collectd
+        state: present
+        update_cache: yes
+
+    - name: Enable and start ecs.service
+      systemd:
+        name: ecs.service
+        enabled: yes
+        state: started
+        daemon_reload: yes
+        no_block: yes
+
+    - name: Install certbot and certbot-nginx via pip
+      pip:
+        name:
+          - certbot
+          - certbot-nginx
+        state: present
+
+    - name: Deploy Nginx preprod configuration
+      copy:
+        src: ./files/preprod/preprod.lukecollins.dev.conf
+        dest: /etc/nginx/conf.d/preprod.lukecollins.dev.conf
+        owner: root
+        group: root
+        mode: '0644'
+      register: nginx_config_changed
+
+    - name: Restart Nginx service
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: yes
+      when: nginx_config_changed.changed
+
+    - name: Check if certificate exists
+      stat:
+        path: /etc/letsencrypt/live/preprod.lukecollins.dev/fullchain.pem
+      register: cert_exists
+
+    - name: Obtain and install SSL certificates for multiple domains
+      command: >
+        certbot --nginx
+        --non-interactive
+        --agree-tos
+        --email admin@lukecollins.dev
+        -d preprod.lukecollins.dev
+      when: not cert_exists.stat.exists
+      become: yes
+
+    - name: Copy CloudWatch Agent configuration
+      copy:
+        src: ./files/common/cloudwatch-agent-config.json
+        dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+        owner: root
+        group: root
+        mode: '0644'
+      register: cloudwatch_agent_config_changed
+
+    - name: Enable amazon-cloudwatch-agent service
+      systemd:
+        name: amazon-cloudwatch-agent
+        enabled: yes
+      when: cloudwatch_agent_config_changed.changed
+
+    - name: Start amazon-cloudwatch-agent service
+      systemd:
+        name: amazon-cloudwatch-agent
+        state: started
+      when: cloudwatch_agent_config_changed.changed
