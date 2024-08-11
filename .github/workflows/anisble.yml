@@ -1,0 +1,36 @@
+name: 'Ansible Deployment'
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    paths:
+      - '**/*.yml'  # Only trigger the workflow if any .yml file is modified
+
+permissions:
+      id-token: write
+      contents: read
+
+jobs:
+  ansible_preprod:
+    if: github.event.action != 'closed'  # Run only if the PR is not closed
+    name: 'Anisble Preprod'
+    runs-on: ubuntu-latest
+    environment: preprod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: configure aws credentials
+        id: aws-creds
+        uses: aws-actions/configure-aws-credentials@v4
+        continue-on-error: true
+        with:
+          role-to-assume: ${{ secrets.GH_ACTIONS_IAM_ROLE }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Retrieve instance id from SSM
+        run: |
+          INSTANCE_ID=$(aws ssm get-parameter --name "INSTANCE_ID" --with-decryption --query "Parameter.Value" --output text)
+          echo "INSTANCE_ID"
